@@ -1,8 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 
-from django.utils.text import slugify
-
+from uuid import uuid4
 
 # Create your models here.
 class Category(models.Model):
@@ -33,3 +32,20 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.slug} - {self.inventory}"
+
+
+class Cart(models.Model):
+    id = models.UUIDField(primary_key=True, editable=False, default=uuid4)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"cart id: {self.id}"
+
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='items')
+    quantity = models.PositiveSmallIntegerField()
+
+    class Meta:
+        unique_together = ('cart', 'product',)
