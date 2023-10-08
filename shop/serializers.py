@@ -11,6 +11,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)
+    num_of_category = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -21,9 +22,12 @@ class ProductListSerializer(serializers.ModelSerializer):
             "image",
             "price",
             "inventory",
+            'num_of_category', 
             "category",
         ]
 
+    def get_num_of_category(self, product):
+        return product.category.count()
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(many=True)

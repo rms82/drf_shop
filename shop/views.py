@@ -1,9 +1,13 @@
 from django.shortcuts import render
 
 from rest_framework import viewsets
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import DjangoModelPermissions
 
+from django_filters.rest_framework import DjangoFilterBackend
+
 from .models import Category, Product
+from .filters import ProductFilterSet
 from .serializers import (
     CategorySerializer,
     ProductListSerializer,
@@ -23,8 +27,15 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    permission_classes = [
+        IsAdminOrReadOnly,
+    ]
     pagination_class = ProductPaginate
-    permission_classes = [IsAdminOrReadOnly,]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ProductFilterSet
+    search_fields = ["title"]
+    ordering_fields = ["updated_at", "price"]
 
     def get_queryset(self):
         return Product.objects.prefetch_related("category")
@@ -37,4 +48,3 @@ class ProductViewSet(viewsets.ModelViewSet):
             return AddProductSerializer
 
         return ProductSerializer
-    

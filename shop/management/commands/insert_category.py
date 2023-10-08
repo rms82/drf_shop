@@ -8,7 +8,7 @@ faker = Faker()
 
 
 class Command(BaseCommand):
-    help = "None"
+    help = "Insert Category data using Faker"
 
     def handle(self, *args, **options):
         Category.objects.all().delete()

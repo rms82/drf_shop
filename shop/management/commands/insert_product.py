@@ -9,7 +9,7 @@ faker = Faker()
 
 
 class Command(BaseCommand):
-    help = "None"
+    help = "Insert Product data using Faker"
 
     def handle(self, *args, **options):
         Product.objects.all().delete()
