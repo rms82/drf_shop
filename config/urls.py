@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 
 
 from .shemas import schema_view
+from .views import home
 
 urlpatterns = [
     #  DEBUG TOOLBAR
@@ -27,6 +28,7 @@ urlpatterns = [
 
     # APSS 
     path("shop/", include("shop.urls")),
+    path("", home)
 ]
 
 if settings.DEBUG:

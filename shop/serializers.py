@@ -63,6 +63,15 @@ class AddProductSerializer(serializers.ModelSerializer):
         ]
 
 
+class UpdateProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = [
+            "price",
+            "inventory",
+        ]
+
+
 class ProductCartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product

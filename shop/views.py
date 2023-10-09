@@ -14,6 +14,7 @@ from .serializers import (
     ProductListSerializer,
     AddProductSerializer,
     ProductSerializer,
+    UpdateProductSerializer,
     CartSerializer,
     CartItemSerializer,
     AddCartItemSerializer,
@@ -49,7 +50,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return ProductListSerializer
 
-        if self.request.method in ["POST", "PATCH"]:
+        if self.request.method == 'PATCH':
+            return UpdateProductSerializer
+        
+        if self.request.method == "POST":
             return AddProductSerializer
 
         return ProductSerializer
