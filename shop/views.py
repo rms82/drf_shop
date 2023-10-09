@@ -3,11 +3,16 @@ from django.db.models import Prefetch
 from rest_framework import viewsets
 from rest_framework import mixins
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.permissions import DjangoModelPermissions, IsAdminUser, AllowAny
+from rest_framework.permissions import (
+    DjangoModelPermissions,
+    IsAdminUser,
+    AllowAny,
+    IsAuthenticated,
+)
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Category, Product, Cart, CartItem
+from .models import Category, Product, Cart, CartItem, Order, OrderItem
 from .filters import ProductFilterSet
 from .serializers import (
     CategorySerializer,
@@ -19,6 +24,8 @@ from .serializers import (
     CartItemSerializer,
     AddCartItemSerializer,
     UpdateCartItemSerializer,
+    OrderSerializer,
+    OrderAdminSerializer
 )
 from .paginations import ProductPaginate
 from .permissions import IsAdminOrReadOnly
@@ -50,9 +57,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         if self.action == "list":
             return ProductListSerializer
 
-        if self.request.method == 'PATCH':
+        if self.request.method == "PATCH":
             return UpdateProductSerializer
-        
+
         if self.request.method == "POST":
             return AddProductSerializer
 
@@ -77,20 +84,39 @@ class CartItemViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        cart_id = self.kwargs.get('cart_pk')
+        cart_id = self.kwargs.get("cart_pk")
         return CartItem.objects.filter(cart_id=cart_id)
 
     def get_serializer_class(self):
         if self.request.method == "POST":
             return AddCartItemSerializer
-        
+
         if self.request.method == "PATCH":
             return UpdateCartItemSerializer
-        
+
         return CartItemSerializer
-    
+
     def get_serializer_context(self):
-        return {'cart_id': self.kwargs.get('cart_pk')}
+        return {"cart_id": self.kwargs.get("cart_pk")}
 
     def get_permissions(self):
-        return [AllowAny(),]
+        return [
+            AllowAny(),
+        ]
+
+
+class OrderViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Order.objects.select_related('customer__user').all()
+        if self.request.user.is_staff:
+            return queryset
+        
+        return queryset.filter(customer__user_id=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.user.is_staff:
+            return OrderAdminSerializer
+        
+        return OrderSerializer

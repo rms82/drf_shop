@@ -2,7 +2,8 @@ from django.db import transaction
 
 from rest_framework import serializers
 
-from .models import Product, Category, Cart, CartItem
+from .models import Product, Category, Cart, CartItem, Order, OrderItem
+from accounts.models import ProfileUser
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -94,11 +95,13 @@ class AddCartItemSerializer(serializers.ModelSerializer):
             cart_id = self.context.get("cart_id")
             quantity = self.validated_data.get("quantity")
             product = self.validated_data.get("product")
-            
+
             try:
                 cartitem = CartItem.objects.get(cart_id=cart_id, product=product)
                 cartitem.quantity += quantity
-                self.check_quantity(quantity=cartitem.quantity, inventory=product.inventory)
+                self.check_quantity(
+                    quantity=cartitem.quantity, inventory=product.inventory
+                )
                 cartitem.save()
 
             except CartItem.DoesNotExist:
@@ -141,3 +144,25 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_items_count(self, cart: Cart):
         return cart.items.count()
+
+
+class ProfileOrderSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username")
+
+    class Meta:
+        model = ProfileUser
+        fields = ["pk", "user", "username", "fullname"]
+
+
+class OrderAdminSerializer(serializers.ModelSerializer):
+    customer = ProfileOrderSerializer(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ["pk", "customer", "status", "total_price"]
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["pk", "status", "total_price"]

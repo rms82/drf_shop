@@ -6,6 +6,10 @@ from django.contrib.auth.models import AbstractUser
 class CustomUser(AbstractUser):
     is_verify = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.username
+    
+
 
 class ProfileUser(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
@@ -18,5 +22,6 @@ class ProfileUser(models.Model):
 
     def __str__(self):
         return f"Profile for: {self.user.username}"
-    
+
+        
 

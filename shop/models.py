@@ -3,6 +3,9 @@ from django.utils.text import slugify
 
 from uuid import uuid4
 
+from accounts.models import ProfileUser
+
+
 # Create your models here.
 class Category(models.Model):
     title = models.CharField(max_length=100)
@@ -43,9 +46,45 @@ class Cart(models.Model):
 
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='items')
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="items")
     quantity = models.PositiveSmallIntegerField()
 
     class Meta:
-        unique_together = ('cart', 'product',)
+        unique_together = (
+            "cart",
+            "product",
+        )
+
+
+class Order(models.Model):
+    STATUS_UNPAID = "u"
+    STATUS_PAID = "p"
+    STATUS_CANSELLED = "c"
+    STATUS = (
+        (STATUS_UNPAID, "Unpaid"),
+        (STATUS_PAID, "Paid"),
+        (STATUS_CANSELLED, "Canselled"),
+    )
+
+    customer = models.ForeignKey(
+        ProfileUser, on_delete=models.CASCADE, related_name="orders"
+    )
+    status = models.CharField(max_length=2, choices=STATUS, default=STATUS_UNPAID)
+    total_price = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"cart id: {self.id}"
+
+
+class OrderItem(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="orderitems")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="orders")
+    quantity = models.PositiveSmallIntegerField()
+
+    class Meta:
+        unique_together = (
+            "order",
+            "product",
+        )
