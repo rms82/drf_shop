@@ -1,17 +1,25 @@
+from django.core.mail import send_mail
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from rest_framework_nested import routers
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import ProfileUser
+from .emails import EmailThread
 from .serializers import (
+    CustomTokenObtainPairSerializer,
+    CustomUserSerializer,
+    ProfileForUserSerializer,
     ProfileSerializer,
     UpdateProfileSerializer,
-    ProfileForUserSerializer,
 )
 
 
@@ -44,3 +52,36 @@ class ProfileViewSet(viewsets.ModelViewSet):
             serializer.save()
 
             return Response(serializer.data)
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+
+class EmailView(APIView):
+    def get(self, request, *args, **kwargs):
+        print('\n\n\n\n\n\n')
+        send_mail(
+            "Subject here",
+            "Here is the message.",
+            "from@example.com",
+            ["to@example.com"],
+            fail_silently=False,
+        )
+        print('\n\n\n\n\n\n')
+        return Response("email")
+
+
+class RegisterView(GenericAPIView):
+    serializer_class = CustomUserSerializer
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            serializer.save()
+
+            email = serializer.validated_data.get('email')
+            thread = EmailThread(email_obj=email)
+            thread.start()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
