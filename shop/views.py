@@ -25,7 +25,9 @@ from .serializers import (
     AddCartItemSerializer,
     UpdateCartItemSerializer,
     OrderSerializer,
-    OrderAdminSerializer
+    OrderAdminSerializer,
+    AddOrderSerializer,
+    UpdateOrderSerializer,
 )
 from .paginations import ProductPaginate
 from .permissions import IsAdminOrReadOnly
@@ -106,17 +108,44 @@ class CartItemViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):
-        queryset = Order.objects.select_related('customer__user').all()
+        queryset = (
+            Order.objects.prefetch_related(
+                Prefetch(
+                    "orderitems", queryset=OrderItem.objects.select_related("product")
+                )
+            )
+            .select_related("customer__user")
+            .all()
+        )
         if self.request.user.is_staff:
             return queryset
-        
+
         return queryset.filter(customer__user_id=self.request.user)
 
     def get_serializer_class(self):
+        if self.request.method == "POST":
+            return AddOrderSerializer
+
+        if self.request.method == "PATCH":
+            return UpdateOrderSerializer
+
         if self.request.user.is_staff:
             return OrderAdminSerializer
-        
+
         return OrderSerializer
+
+    def get_serializer_context(self):
+        return {"user_id": self.request.user.pk}
+
+    def get_permissions(self):
+        if self.request.method in ["PATCH", "DELETE"]:
+            return [
+                IsAdminUser(),
+            ]
+
+        return [
+            IsAuthenticated(),
+        ]

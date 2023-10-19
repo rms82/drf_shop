@@ -154,15 +154,74 @@ class ProfileOrderSerializer(serializers.ModelSerializer):
         fields = ["pk", "user", "username", "fullname"]
 
 
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = serializers.StringRelatedField()
+    class Meta:
+        model = OrderItem
+        fields = ["product", "quantity",]
+
+
 class OrderAdminSerializer(serializers.ModelSerializer):
     customer = ProfileOrderSerializer(read_only=True)
+    orderitems = OrderItemSerializer(many=True)
+
 
     class Meta:
         model = Order
-        fields = ["pk", "customer", "status", "total_price"]
+        fields = ["pk", "customer", "status", "total_price", "orderitems"]
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    orderitems = OrderItemSerializer(many=True)
     class Meta:
         model = Order
-        fields = ["pk", "status", "total_price"]
+        fields = ["pk", "status", "total_price", "orderitems"]
+
+
+class UpdateOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Order
+        fields = ["status",]
+
+
+class AddOrderSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField(required=True)
+
+    def validate_cart_id(self, cart_id):
+        try:
+            cart = Cart.objects.get(pk=cart_id)
+            if cart.items.count() == 0:
+                raise serializers.ValidationError("cart is empty")
+
+        except Cart.DoesNotExist:
+            raise serializers.ValidationError("cart id is not valid")
+
+        return cart_id
+
+    def save(self, **kwargs):
+        cart_id = self.validated_data.get("cart_id")
+
+        user_id = self.context.get("user_id")
+        user_profile = ProfileUser.objects.get(user_id=user_id)
+
+        with transaction.atomic():
+            order = Order()
+            order.customer_id = user_profile.pk
+            order.save()
+
+            cart_items = CartItem.objects.filter(cart_id=cart_id)
+
+            order_items = [
+                OrderItem(
+                    order=order,
+                    product=cart_item.product,
+                    quantity=cart_item.quantity,
+                )
+                for cart_item in cart_items
+            ]
+
+            OrderItem.objects.bulk_create(order_items)
+
+            Cart.objects.get(pk=cart_id).delete()
+
+            return order
