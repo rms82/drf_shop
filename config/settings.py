@@ -52,11 +52,14 @@ INSTALLED_APPS = [
     "django_filters",
     "rest_framework_simplejwt",
     "mail_templated",
+    "corsheaders",
 ]
 
 MIDDLEWARE = [
     # DEBUG TOOLBAR MIDDLEWARE
     "debug_toolbar.middleware.DebugToolbarMiddleware",
+    # DJANGO CORS HEADER MIDDLEWARE
+    "corsheaders.middleware.CorsMiddleware",
     # DJANGO MIDDLEWARE
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -177,3 +180,9 @@ EMAIL_HOST = "localhost"
 EMAIL_HOST_USER = ""
 EMAIL_HOST_PASSWORD = ""
 EMAIL_PORT = 25
+
+
+# CORS HEADER SETTINGS
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+]

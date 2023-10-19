@@ -62,7 +62,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
 class EmailView(APIView):
     def get(self, request, *args, **kwargs):
-        print("\n\n\n\n\n\n")
         send_mail(
             "Subject here",
             "Here is the message.",
@@ -70,7 +69,6 @@ class EmailView(APIView):
             ["to@example.com"],
             fail_silently=False,
         )
-        print("\n\n\n\n\n\n")
         return Response("email")
 
 

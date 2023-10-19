@@ -29,6 +29,7 @@ urlpatterns = [
     # APSS 
     path("shop/", include("shop.urls")),
     path("accounts/", include("accounts.urls")),
+    path("blog/", include("blog.urls")),
     path("", home)
 ]
 
