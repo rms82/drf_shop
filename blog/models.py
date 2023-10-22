@@ -41,5 +41,5 @@ class Comment(TimeModel):
     rating = models.CharField(max_length=2, choices=RATINGS)
 
     def __str__(self):
-        return self.body
+        return f"{self.user}-{self.post}"
     

@@ -1,6 +1,7 @@
+from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, reverse
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -13,6 +14,8 @@ from mail_templated import EmailMessage
 from rest_framework_nested import routers
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
+from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError, DecodeError 
+import jwt
 
 from .models import ProfileUser, CustomUser
 from .emails import EmailThread
@@ -28,6 +31,7 @@ from .serializers import (
 # Create your views here.
 class ProfileViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "put", "delete", "head", "options"]
+
     serializer_class = ProfileSerializer
     queryset = ProfileUser.objects.all()
     permission_classes = [IsAdminUser]
@@ -60,16 +64,30 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
-class EmailView(APIView):
-    def get(self, request, *args, **kwargs):
-        send_mail(
-            "Subject here",
-            "Here is the message.",
-            "from@example.com",
-            ["to@example.com"],
-            fail_silently=False,
-        )
-        return Response("email")
+class EmailActivationView(APIView):
+    def get(self, request, token, *args, **kwargs):
+        try:
+            token = jwt.decode(jwt=token, key=settings.SECRET_KEY, algorithms=['HS256'])
+            
+        except DecodeError:
+            return Response("Invalid Token!")
+
+        except ExpiredSignatureError:
+            return Response("Token is expired!")
+
+        except InvalidSignatureError:
+            return Response("Invalid Token!")
+
+        user_id = token.get('user_id')
+        user = get_object_or_404(CustomUser, pk=user_id)
+
+        if user.is_verify == True:
+            return Response('user is already verified')
+        
+        user.is_verify = True
+        user.save()
+
+        return Response('user is verified now!')
 
 
 class RegisterView(GenericAPIView):
@@ -78,14 +96,19 @@ class RegisterView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         with transaction.atomic():
             serializer.save()
-
             email = serializer.validated_data.get("email")
             token = self.get_token_for_user(email)
+
             email_obj = EmailMessage(
-                "email/hello.tpl", {"token": token}, "from@example.com", to=[f"{email}"]
+                "email/hello.tpl",
+                {"token": token, "url": reverse("email", kwargs={"token": token})},
+                "from@example.com",
+                to=[f"{email}"],
             )
+
             EmailThread(email_obj=email_obj).start()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -5,8 +5,8 @@ Hello
 {% endblock %}
 
 {% block body %}
-User Token: {{token}}
+Click on the link below to activate your accout
+http://127.0.0.1:8000{{url}}
 
 
-This is a plain text message.
 {% endblock %}
