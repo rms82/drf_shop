@@ -2,8 +2,14 @@ from django.shortcuts import get_object_or_404, reverse
 
 from rest_framework import serializers
 
-from .models import Post, Comment
+from .models import Post, Comment, Category
 from accounts.models import ProfileUser
+
+
+class PostCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["pk", "name", "created_at"]
 
 
 class PostCommentSerializer(serializers.ModelSerializer):
@@ -16,10 +22,11 @@ class PostCommentSerializer(serializers.ModelSerializer):
 
 class ListPostSerializer(serializers.ModelSerializer):
     author = serializers.CharField(source="author.user.username")
+    category = PostCategorySerializer(many=True)
 
     class Meta:
         model = Post
-        fields = ["pk", "title", "slug", "image", "author"]
+        fields = ["pk", "title", "slug", "image", "author", "category"]
         read_only_fields = [
             "slug",
         ]
@@ -72,14 +79,36 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ["pk", "user", "body", "rating"]
 
     def create(self, validated_data):
-        post_id = self.context.get('post_id')
-        user_id = self.context.get('user_id')
+        post_id = self.context.get("post_id")
+        user_id = self.context.get("user_id")
         user_profile = get_object_or_404(ProfileUser, user_id=user_id)
-        
-        return Comment.objects.create(post_id = post_id, user=user_profile, **validated_data)
+
+        return Comment.objects.create(
+            post_id=post_id, user=user_profile, **validated_data
+        )
 
 
 class UpdateCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ["body", "rating"]
+
+
+class BlogSubCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["pk", "name"]
+
+
+class BlogCategorySerializer(serializers.ModelSerializer):
+    subcategory = BlogSubCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ["pk", "name", "parent", "subcategory","created_at"]
+
+
+class BlogUpdateCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ["name", "parent"]

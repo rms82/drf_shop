@@ -6,6 +6,7 @@ from . import views
 
 router = DefaultRouter()
 router.register('post', views.PostViewSet, basename='post')
+router.register('blog_category', views.CategoryViewSet, basename='blog_category')
 
 post_router = NestedDefaultRouter(router, 'post', lookup='post')
 post_router.register('comments', viewset=views.PostCommentViewSet, basename='comments')

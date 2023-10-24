@@ -12,15 +12,21 @@ from rest_framework.permissions import (
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Post, Comment
+from .models import Post, Comment, Category
 from .pagination import PostPaginate, PostCommentPaginate
-from .permissions import IsOwnerOrAdminOrReadOnly, CommentIsOwnerOrAdminOrReadOnly
+from .permissions import (
+    CommentIsOwnerOrAdminOrReadOnly,
+    IsAdminOrReadOnly,
+    IsOwnerOrAdminOrReadOnly,
+)
 from .serializers import (
     PostSerializer,
     ListPostSerializer,
     UpdatePostSerializer,
     CommentSerializer,
     UpdateCommentSerializer,
+    BlogCategorySerializer,
+    BlogUpdateCategorySerializer,
 )
 
 
@@ -44,7 +50,8 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return Post.objects.select_related("author__user").prefetch_related(
-            Prefetch("comments", queryset=Comment.objects.select_related("user__user"))
+            Prefetch("comments", queryset=Comment.objects.select_related("user__user")),
+            'category'
         )
 
     def get_permissions(self):
@@ -92,3 +99,20 @@ class PostCommentViewSet(viewsets.ModelViewSet):
             "post_id": self.kwargs.get("post_pk"),
             "user_id": self.request.user.pk,
         }
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    filter_backends = [OrderingFilter]
+    ordering_fields = ["name", "created_at"]
+
+    def get_serializer_class(self):
+        if self.request.method in ["PUT", "PATCH"]:
+            return BlogUpdateCategorySerializer
+
+        return BlogCategorySerializer
+
+    def get_queryset(self):
+        return Category.objects.select_related("parent").prefetch_related("subcategory")
+
+    def get_permissions(self):
+        return [IsAdminOrReadOnly()]
