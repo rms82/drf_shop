@@ -11,5 +11,6 @@ Faker
 pillow
 
 psycopg2-binary
-
+django-jazzmin
+python-decouple
 

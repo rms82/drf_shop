@@ -10,8 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from pathlib import Path
 from datetime import timedelta
+from decouple import config
+from pathlib import Path
 import os
 
 
@@ -23,10 +24,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-_80z)67-$k#h8*_gibo0#^bys5=owaonk@oc7+coa)mzw0l%vl"
+# SECRET_KEY = "django-insecure-_80z)67-$k#h8*_gibo0#^bys5=owaonk@oc7+coa)mzw0l%vl"
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG" ,cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -34,6 +36,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # DJANGO ADMINPANEL UI
+    "jazzmin",
     # DJANGO APPS
     "django.contrib.admin",
     "django.contrib.auth",
@@ -160,6 +164,11 @@ MEDIA_URL = "/media/"
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+if DEBUG:
+    import socket  # only if you haven't already imported this
+    hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    INTERNAL_IPS = [ip[: ip.rfind(".")] + ".1" for ip in ips] + ["127.0.0.1", "10.0.2.2"]
+
 
 # REST FRAMEWORK
 REST_FRAMEWORK = {
@@ -177,7 +186,7 @@ SIMPLE_JWT = {
 # EMAIL SETTINGS
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_USE_TLS = False
-EMAIL_HOST = "localhost"
+EMAIL_HOST = 'smtp4dev'
 EMAIL_HOST_USER = ""
 EMAIL_HOST_PASSWORD = ""
 EMAIL_PORT = 25
@@ -187,3 +196,13 @@ EMAIL_PORT = 25
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5500",
 ]
+
+# DJANGO JAZZMIN SETTINGS
+JAZZMIN_SETTINGS = {
+    "show_ui_builder": True,
+
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "darkly",
+}
