@@ -25,6 +25,7 @@ from .serializers import (
     ProfileForUserSerializer,
     ProfileSerializer,
     UpdateProfileSerializer,
+    ChangePasswordSerializer,
 )
 
 
@@ -67,8 +68,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class EmailActivationView(APIView):
     def get(self, request, token, *args, **kwargs):
         try:
-            token = jwt.decode(jwt=token, key=settings.SECRET_KEY, algorithms=['HS256'])
-            
+            token = jwt.decode(jwt=token, key=settings.SECRET_KEY, algorithms=["HS256"])
+
         except DecodeError:
             return Response("Invalid Token!")
 
@@ -78,16 +79,16 @@ class EmailActivationView(APIView):
         except InvalidSignatureError:
             return Response("Invalid Token!")
 
-        user_id = token.get('user_id')
+        user_id = token.get("user_id")
         user = get_object_or_404(CustomUser, pk=user_id)
 
         if user.is_verify == True:
-            return Response('user is already verified')
-        
+            return Response("user is already verified")
+
         user.is_verify = True
         user.save()
 
-        return Response('user is verified now!')
+        return Response("user is verified now!")
 
 
 class RegisterView(GenericAPIView):
@@ -103,7 +104,7 @@ class RegisterView(GenericAPIView):
             token = self.get_token_for_user(email)
 
             email_obj = EmailMessage(
-                "email/hello.tpl",
+                "email/active_user.tpl",
                 {"token": token, "url": reverse("email", kwargs={"token": token})},
                 "from@example.com",
                 to=[f"{email}"],
@@ -111,10 +112,39 @@ class RegisterView(GenericAPIView):
 
             EmailThread(email_obj=email_obj).start()
 
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        data = {"detail": "user created! activation link send to your email!"}
+        return Response(data, status=status.HTTP_201_CREATED)
 
     def get_token_for_user(self, email):
         user = get_object_or_404(CustomUser, email=email)
         token = RefreshToken.for_user(user)
 
         return str(token.access_token)
+
+
+class ChangePasswordView(GenericAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+    def put(self, request, *args, **kwargs):
+        self.user_obj = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        old_password = serializer.validated_data.get("old_password")
+        new_password = serializer.validated_data.get("new_password")
+
+        if not self.user_obj.check_password(old_password):
+            return Response(
+                {"old_password": "user password is not correct"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        self.user_obj.set_password(new_password)
+        self.user_obj.save()
+
+        return Response({"detail": "password changed!!"})

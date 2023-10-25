@@ -19,6 +19,9 @@ urlpatterns = [
     # JWT
     path("token/", views.CustomTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+
+    # PASSWORD
+    path('profile/change_password/', views.ChangePasswordView.as_view(), name='change_password')
 ]
 
 urlpatterns += router.urls
