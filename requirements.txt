@@ -1,0 +1,15 @@
+django
+django-cors-headers
+django-debug-toolbar
+django-filter
+django-mail-templated
+djangorestframework
+djangorestframework-simplejwt
+drf-nested-routers
+drf-yasg
+Faker
+pillow
+
+psycopg2-binary
+
+
