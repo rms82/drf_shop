@@ -1,7 +1,8 @@
 from django.db.models import Prefetch
 
-from rest_framework import viewsets
 from rest_framework import mixins
+from rest_framework import status
+from rest_framework import viewsets
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import (
     DjangoModelPermissions,
@@ -9,6 +10,8 @@ from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
 )
+from rest_framework.response import Response
+
 
 from django_filters.rest_framework import DjangoFilterBackend
 
@@ -149,3 +152,13 @@ class OrderViewSet(viewsets.ModelViewSet):
         return [
             IsAuthenticated(),
         ]
+
+    def create(self, request, *args, **kwargs):
+        serializer = AddOrderSerializer(
+            data=request.data, context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+
+        order_serializer = OrderSerializer(order)
+        return Response(order_serializer.data, status=status.HTTP_201_CREATED)

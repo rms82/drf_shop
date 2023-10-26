@@ -28,10 +28,13 @@ class CartItemInline(admin.TabularInline):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display = ["pk"]
+    list_display = ["pk", "num_items"]
     inlines = [
         CartItemInline,
     ]
+
+    def num_items(self, cart):
+        return cart.items.count()
 
 
 class OrderItemInline(admin.TabularInline):

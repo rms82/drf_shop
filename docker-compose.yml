@@ -1,15 +1,38 @@
 services:
+  redis:
+    container_name: redis
+    image: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+
   backend:
-    container_name: backend
     build: .
+    container_name: backend
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
     ports:
       - "8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=test
+      - DEBUG=${DJANGO_DEBUG}
+      - SECRET_KEY=${DJANGO_SECRET_KEY}
+    depends_on:
+      - redis
+
+  celeyworker:
+    container_name: celeyworker
+    build: .
+    volumes:
+      - .:/code
+    command: celery -A config worker --loglevel=info
+    depends_on:
+      - backend
+      - redis
+    environment:
+      - DEBUG=${DJANGO_DEBUG}
+      - SECRET_KEY=${DJANGO_SECRET_KEY}
 
   db:
     container_name: db
@@ -33,6 +56,22 @@ services:
       - smtp4dev-data:/smtp4dev
     environment:
       - ServerOptions__HostName=smtp4dev
+
+  master:
+    container_name: locust_master
+    image: locustio/locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./locust:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --master -H http://backend:8000
+
+  worker:
+    container_name: locust_worker
+    image: locustio/locust
+    volumes:
+      - ./locust:/mnt/locust
+    command: -f /mnt/locust/locustfile.py --worker --master-host master
 
 volumes:
   smtp4dev-data:
