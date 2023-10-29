@@ -19,6 +19,7 @@ import jwt
 
 from .models import ProfileUser, CustomUser
 from .emails import EmailThread
+from .permissions import SendMailPermission
 from .serializers import (
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
@@ -26,7 +27,10 @@ from .serializers import (
     ProfileSerializer,
     UpdateProfileSerializer,
     ChangePasswordSerializer,
+    SendEmailSerializer,
 )
+from .tasks import celery_send_email
+
 
 
 # Create your views here.
@@ -148,3 +152,28 @@ class ChangePasswordView(GenericAPIView):
         self.user_obj.save()
 
         return Response({"detail": "password changed!!"})
+
+
+class SendEmailView(GenericAPIView):
+    serializer_class = SendEmailSerializer
+    permission_classes = [SendMailPermission,]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data.get("email")
+        text = serializer.validated_data.get("text")
+        
+        email_obj = EmailMessage(
+            "email/send_mail.tpl",
+            {"text": text,},
+            "from@example.com",
+            to=[f"{email}"],
+        )
+
+        EmailThread(email_obj=email_obj).start()
+        celery_send_email.delay()
+
+        data = {"detail": f"email sent to {email}"}
+        return Response(data)

@@ -21,7 +21,10 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
 
     # PASSWORD
-    path('profile/change_password/', views.ChangePasswordView.as_view(), name='change_password')
+    path('profile/change_password/', views.ChangePasswordView.as_view(), name='change_password'),
+
+    # Email
+    path('send_mail', views.SendEmailView.as_view(), name='send_mail')
 ]
 
 urlpatterns += router.urls

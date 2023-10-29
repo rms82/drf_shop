@@ -111,3 +111,8 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         return data
 
+
+class SendEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    text = serializers.CharField()
+

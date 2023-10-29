@@ -4,15 +4,19 @@ from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
 class CustomUser(AbstractUser):
+    class Meta:
+        permissions = (("send_mail", "Can Send Email to users"),)
+
     is_verify = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
-    
 
 
 class ProfileUser(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(
+        CustomUser, on_delete=models.CASCADE, related_name="profile"
+    )
 
     birth_date = models.DateField(null=True)
 
@@ -22,6 +26,3 @@ class ProfileUser(models.Model):
 
     def __str__(self):
         return f"Profile for: {self.user.username}"
-
-        
-
