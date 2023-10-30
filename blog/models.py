@@ -33,7 +33,7 @@ class Post(TimeModel):
     )
     title = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(blank=True)
-    image = models.ImageField(upload_to="blog/img/")
+    image = models.ImageField(upload_to="blog/img/", null=True)
     category = models.ManyToManyField(Category, related_name='posts')
     body = models.TextField()
 
@@ -62,3 +62,16 @@ class Comment(TimeModel):
 
     def __str__(self):
         return f"{self.user}-{self.post}"
+
+
+class Like(TimeModel):
+    class Meta:
+        unique_together = (('user', 'post'), )
+
+    user = models.ForeignKey(ProfileUser, on_delete=models.CASCADE, related_name='likes')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
+
+    def __str__(self):
+        return f"User:{self.user.user.username} - Post-id: {self.post.pk}"
+    
+

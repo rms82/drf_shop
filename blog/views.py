@@ -1,18 +1,20 @@
 from django.db.models import Prefetch
 
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import (
     DjangoModelPermissions,
     IsAdminUser,
     AllowAny,
     IsAuthenticated,
 )
+from rest_framework.response import Response
 
 
 from django_filters.rest_framework import DjangoFilterBackend
 
-from .models import Post, Comment, Category
+from .models import Post, Comment, Category, Like
 from .pagination import PostPaginate, PostCommentPaginate
 from .permissions import (
     CommentIsOwnerOrAdminOrReadOnly,
@@ -51,7 +53,7 @@ class PostViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Post.objects.select_related("author__user").prefetch_related(
             Prefetch("comments", queryset=Comment.objects.select_related("user__user")),
-            'category'
+            "category",
         )
 
     def get_permissions(self):
@@ -116,3 +118,25 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         return [IsAdminOrReadOnly()]
+
+
+class LikeView(GenericAPIView):
+    queryset = Like.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk, *args, **kwargs):
+        user_id = request.user.pk
+
+        try:
+            post = Post.objects.get(pk=pk)
+            like_obj = Like.objects.get(user_id=user_id, post_id=pk)
+            like_obj.delete()
+            return Response("dislike", status=status.HTTP_200_OK)
+
+        except Post.DoesNotExist:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        except Like.DoesNotExist:
+            like_obj = Like.objects.create(post_id=pk, user_id=user_id)
+
+            return Response('liked', status=status.HTTP_200_OK)

@@ -1,8 +1,10 @@
 from django.core.management.base import BaseCommand
 
 from faker import Faker
+from random import randint, choice, sample
 
-from ...models import Post
+from blog.models import Post, Category
+from accounts.models import ProfileUser
 
 faker = Faker()
 
@@ -12,15 +14,27 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         Post.objects.all().delete()
+        categories = list(Category.objects.values_list('pk', flat=True))
+        users = list(ProfileUser.objects.values_list('pk', flat=True))
 
-        user_input = int(input("Enter number of posts: "))
+        user_input = int(input("Enter number of Posts: "))
 
         for _ in range(user_input):
-            title = faker.job()
-            Category.objects.create(title=title)
+            title = faker.company()
+            body = faker.paragraph(nb_sentences=5)
+            category = sample(categories, randint(1, 10))
+            post = Post.objects.create(
+                author_id=choice(users),
+                title=title,
+                body=body,
+            )
+            for item in category:
+                post.category.add(item)
 
-            print("Post created.....")
-
+            print('Product created.....')
+            
         self.stdout.write(
-            self.style.SUCCESS(f"Successfully created {user_input} posts")
+            self.style.SUCCESS(f'Successfully created {user_input} posts')
         )
+
+
