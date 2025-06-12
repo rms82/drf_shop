@@ -32,7 +32,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
         email = data.get("email")
 
         if CustomUser.objects.filter(email=email).exists():
-            raise serializers.ValidationError({"email": "user with this email already exits!"})
+            raise serializers.ValidationError(
+                {"email": "user with this email already exits!"}
+            )
 
         if password != password_confirm:
             raise serializers.ValidationError({"password": "passwords does not match!"})
@@ -102,7 +104,9 @@ class ChangePasswordSerializer(serializers.Serializer):
         new_password_confirm = data.get("new_password_confirm")
 
         if new_password != new_password_confirm:
-            raise serializers.ValidationError({"new_password": "passwords does not match!"})
+            raise serializers.ValidationError(
+                {"new_password": "passwords does not match!"}
+            )
 
         try:
             validate_password(new_password)
@@ -116,3 +120,22 @@ class SendEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
     text = serializers.CharField()
 
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        new_password = data.get("new_password")
+
+        try:
+            validate_password(new_password)
+        except exceptions.ValidationError as e:
+            raise serializers.ValidationError({"new_password": list(e.messages)})
+
+        return data

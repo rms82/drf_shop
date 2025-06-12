@@ -22,6 +22,8 @@ urlpatterns = [
 
     # PASSWORD
     path('profile/change_password/', views.ChangePasswordView.as_view(), name='change_password'),
+    path('forgot_password/', views.PasswordResetRequestJWTView.as_view(), name='forgot_password'),
+    path('forgot_password/confirm/', views.PasswordResetConfirmView.as_view(), name='forgot_password_confirm'),
 
     # Email
     path('send_mail', views.SendEmailView.as_view(), name='send_mail')

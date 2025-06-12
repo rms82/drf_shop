@@ -12,9 +12,9 @@ from rest_framework.views import APIView
 
 from mail_templated import EmailMessage
 from rest_framework_nested import routers
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError, DecodeError 
+from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError, DecodeError
 import jwt
 
 from .models import ProfileUser, CustomUser
@@ -28,9 +28,10 @@ from .serializers import (
     UpdateProfileSerializer,
     ChangePasswordSerializer,
     SendEmailSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetConfirmSerializer,
 )
 from .tasks import celery_send_email
-
 
 
 # Create your views here.
@@ -156,7 +157,9 @@ class ChangePasswordView(GenericAPIView):
 
 class SendEmailView(GenericAPIView):
     serializer_class = SendEmailSerializer
-    permission_classes = [SendMailPermission,]
+    permission_classes = [
+        SendMailPermission,
+    ]
 
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -164,10 +167,12 @@ class SendEmailView(GenericAPIView):
 
         email = serializer.validated_data.get("email")
         text = serializer.validated_data.get("text")
-        
+
         email_obj = EmailMessage(
             "email/send_mail.tpl",
-            {"text": text,},
+            {
+                "text": text,
+            },
             "from@example.com",
             to=[f"{email}"],
         )
@@ -177,3 +182,60 @@ class SendEmailView(GenericAPIView):
 
         data = {"detail": f"email sent to {email}"}
         return Response(data)
+
+
+class PasswordResetRequestJWTView(GenericAPIView):
+    serializer_class = PasswordResetRequestSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data.get("email")
+        user = get_object_or_404(CustomUser, email=email)
+        token = self.get_token_for_user(user)
+
+        email_obj = EmailMessage(
+            "email/forgot_password.tpl",
+            {"token": token, "url": reverse("forgot_password_confirm")},
+            "from@example.com",
+            to=[f"{email}"],
+        )
+
+        EmailThread(email_obj=email_obj).start()
+
+        return Response(
+            {"message": "ایمیل حاوی لینک بازیابی ارسال شد."}, status=status.HTTP_200_OK
+        )
+
+    def get_token_for_user(self, user):
+        token = RefreshToken.for_user(user)
+
+        return str(token.access_token)
+
+
+class PasswordResetConfirmView(GenericAPIView):
+    serializer_class = PasswordResetConfirmSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
+        try:
+            access_token = AccessToken(token)
+            user_id = access_token["user_id"]
+            user = CustomUser.objects.get(id=user_id)
+            user.set_password(new_password)
+            user.save()
+            return Response(
+                {"message": "رمز عبور با موفقیت تغییر کرد."}, status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": "توکن نامعتبر یا منقضی شده است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
